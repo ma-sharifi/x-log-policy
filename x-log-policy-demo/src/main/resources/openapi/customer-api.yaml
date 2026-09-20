@@ -1,0 +1,133 @@
+openapi: 3.0.3
+info:
+  title: Customer API
+  version: 1.0.0
+  description: |
+    Demonstrates the x-log-policy extension. Every field carries the policy that decides how it may
+    appear in logs, and the build fails if a field that looks like personal data does not.
+
+paths:
+  /customers:
+    post:
+      operationId: createCustomer
+      summary: Register a customer
+      parameters:
+        - name: X-Caller-Email
+          in: header
+          description: Who is calling; correlatable in logs but never readable.
+          schema: { type: string }
+          x-log-policy: HMAC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+      responses:
+        "201":
+          description: The stored customer, returned in full to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      summary: Fetch a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          x-log-policy: SAFE
+      responses:
+        "200":
+          description: The customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        "404":
+          description: No such customer
+
+components:
+  schemas:
+    Customer:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+          description: Opaque identifier, safe to log.
+          x-log-policy: SAFE
+        email:
+          type: string
+          format: email
+          description: Pseudonymised in logs, so the same customer can still be traced.
+          x-log-policy: HMAC
+        ssn:
+          type: string
+          description: Never appears in a log in any form.
+          x-log-policy: MASK
+        cardNumber:
+          type: string
+          description: Last four digits survive, which is what support needs.
+          x-log-policy:
+            policy: PARTIAL
+            keep: 4
+        fullName:
+          type: string
+          description: Reduced to initials by the application's own redaction.
+          x-log-policy:
+            policy: CUSTOM
+            name: initials
+        internalNote:
+          type: string
+          description: Dropped from log output entirely.
+          x-log-policy: DROP
+        phoneNumbers:
+          type: array
+          description: Every element is hashed, not just the first.
+          items:
+            type: string
+            x-log-policy: HASH
+        tags:
+          type: array
+          items: { type: string }
+          x-log-policy: SAFE
+        loyaltyPoints:
+          type: integer
+          format: int32
+          x-log-policy: SAFE
+        createdAt:
+          type: string
+          format: date-time
+          x-log-policy: SAFE
+        address:
+          $ref: '#/components/schemas/Address'
+        attributes:
+          type: object
+          description: Free-form; values are masked whatever the keys turn out to be.
+          additionalProperties:
+            type: string
+            x-log-policy: MASK
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          x-log-policy: MASK
+        houseNumber:
+          type: string
+          x-log-policy: MASK
+        postalCode:
+          type: string
+          x-log-policy:
+            policy: PARTIAL
+            keep: 2
+        city:
+          type: string
+          x-log-policy: SAFE
+        country:
+          type: string
+          x-log-policy: SAFE
