@@ -1,0 +1,2 @@
+io.xlogpolicy.spring.XLogPolicyAutoConfiguration
+io.xlogpolicy.spring.web.XLogPolicyWebAutoConfiguration
