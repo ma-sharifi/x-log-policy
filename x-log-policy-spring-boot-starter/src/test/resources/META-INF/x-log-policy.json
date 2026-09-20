@@ -1,0 +1,25 @@
+{
+  "version" : 1,
+  "schemas" : {
+    "Customer" : {
+      "cardNumber" : { "policy" : "PARTIAL", "keep" : 4 },
+      "id" : { "policy" : "SAFE" },
+      "ssn" : { "policy" : "MASK" }
+    },
+    "ThirdPartyPayload" : {
+      "customerRef" : { "policy" : "SAFE" },
+      "taxNumber" : { "policy" : "MASK" }
+    },
+    "#parameters" : {
+      "X-Caller-Email" : { "policy" : "HMAC" }
+    }
+  },
+  "byFieldName" : {
+    "cardNumber" : { "policy" : "PARTIAL", "keep" : 4 },
+    "customerRef" : { "policy" : "SAFE" },
+    "id" : { "policy" : "SAFE" },
+    "ssn" : { "policy" : "MASK" },
+    "taxNumber" : { "policy" : "MASK" },
+    "X-Caller-Email" : { "policy" : "HMAC" }
+  }
+}

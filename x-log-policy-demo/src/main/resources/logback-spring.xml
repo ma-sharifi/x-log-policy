@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Demonstrates the last line of defence: %safeMsg redacts declared fields inside any message, including
+  ones written by code that forgot to use the LogRedactor. Swap it for %msg to see the difference.
+-->
+<configuration>
+  <conversionRule conversionWord="safeMsg"
+                  class="io.xlogpolicy.spring.logback.SafeMessageConverter"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{28} - %safeMsg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: x-log-policy-demo
+
+x-log-policy:
+  # Fail closed: a field nobody declared is masked rather than logged.
+  default-policy: MASK
+  hmac:
+    # Supply a real secret from the environment; without one, digests only correlate within one JVM.
+    secret: ${LOG_HMAC_SECRET:demo-secret-not-for-production}
+  http:
+    enabled: true
+    include-response-body: true
+    include-headers:
+      - X-Caller-Email
+      - Authorization
+
+logging:
+  level:
+    io.xlogpolicy: INFO

@@ -1,0 +1,13 @@
+openapi: 3.0.3
+info:
+  title: Uncovered fixture
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Applicant:
+      type: object
+      properties:
+        reference: { type: string, x-log-policy: SAFE }
+        passportNumber: { type: string }
+        countryCode: { type: string }

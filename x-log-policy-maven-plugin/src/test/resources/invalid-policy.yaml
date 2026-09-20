@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Invalid fixture
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        ssn: { type: string, x-log-policy: OBFUSCATE }
