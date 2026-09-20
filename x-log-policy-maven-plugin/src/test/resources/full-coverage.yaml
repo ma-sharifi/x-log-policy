@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Coverage fixture
+  version: 1.0.0
+paths:
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema: { type: string }
+          x-log-policy: SAFE
+        - name: X-Caller-Email
+          in: header
+          schema: { type: string }
+          x-log-policy: HMAC
+      responses:
+        "200":
+          description: the customer
+          headers:
+            X-Trace-Id:
+              schema: { type: string }
+              x-log-policy: SAFE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+  /audit:
+    post:
+      operationId: recordAudit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actor: { type: string, x-log-policy: HMAC }
+                action: { type: string, x-log-policy: SAFE }
+      responses:
+        "202": { description: accepted }
+components:
+  schemas:
+    Customer:
+      type: object
+      properties:
+        id: { type: string, x-log-policy: SAFE }
+        ssn: { type: string, x-log-policy: MASK }
+        cardNumber:
+          type: string
+          x-log-policy:
+            policy: PARTIAL
+            keep: 4
+        loyaltyId:
+          type: string
+          x-log-policy:
+            policy: CUSTOM
+            name: loyalty
+        email: { type: string, x-log-policy: hmac }
+        address:
+          $ref: '#/components/schemas/Address'
+        priorAddresses:
+          type: array
+          items:
+            type: string
+            x-log-policy: MASK
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+            x-log-policy: MASK
+        contact:
+          type: object
+          properties:
+            phone: { type: string, x-log-policy: HASH }
+            preferredName: { type: string, x-log-policy: SAFE }
+    Address:
+      type: object
+      properties:
+        street: { type: string, x-log-policy: MASK }
+        city: { type: string, x-log-policy: SAFE }
+    Secret:
+      type: object
+      x-log-policy: MASK
+      properties:
+        clientId: { type: string }
+        clientSecret: { type: string }
+        label: { type: string, x-log-policy: SAFE }
+    Employee:
+      allOf:
+        - $ref: '#/components/schemas/Address'
+        - type: object
+          properties:
+            employeeNumber: { type: string, x-log-policy: HMAC }

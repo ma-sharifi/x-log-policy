@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.xlogpolicy</groupId>
+    <artifactId>x-log-policy-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>x-log-policy-maven-plugin</artifactId>
+  <packaging>maven-plugin</packaging>
+  <name>x-log-policy-maven-plugin</name>
+  <description>Reads x-log-policy from an OpenAPI document: generates the runtime registry and validates coverage.</description>
+
+  <prerequisites>
+    <maven>3.6.3</maven>
+  </prerequisites>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.xlogpolicy</groupId>
+      <artifactId>x-log-policy-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.swagger.parser.v3</groupId>
+      <artifactId>swagger-parser</artifactId>
+      <version>${swagger-parser.version}</version>
+      <exclusions>
+        <!-- The parser is only needed for OpenAPI 3; keep the plugin classpath small. -->
+        <exclusion>
+          <groupId>io.swagger.parser.v3</groupId>
+          <artifactId>swagger-parser-v2-converter</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.javaparser</groupId>
+      <artifactId>javaparser-core</artifactId>
+      <version>${javaparser.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-plugin-api</artifactId>
+      <version>${maven-api.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${maven-api.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-tools</groupId>
+      <artifactId>maven-plugin-annotations</artifactId>
+      <version>${maven-plugin-tools.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+        <configuration>
+          <goalPrefix>x-log-policy</goalPrefix>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
