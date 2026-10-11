@@ -1,0 +1,8 @@
+{"type": "record", "name": "CustomerCreated", "namespace": "com.example.events", "fields": [
+  {"name": "id",        "type": "string", "x-log-policy": "SAFE"},
+  {"name": "email",     "type": ["null", "string"], "default": null, "x-log-policy": "HMAC"},
+  {"name": "phones",    "type": {"type": "array", "items": "string", "x-log-policy": {"policy": "PARTIAL", "keep": 2}}},
+  {"name": "lastName",  "type": "string"},
+  {"name": "address",   "type": "com.example.events.Address"},
+  {"name": "bad",       "type": "string", "x-log-policy": {"keep": 2}}
+]}

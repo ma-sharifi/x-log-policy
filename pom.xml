@@ -10,10 +10,11 @@
   <packaging>pom</packaging>
 
   <name>x-log-policy</name>
-  <description>OpenAPI x-log-policy extension: contract-driven, PII-safe logging for Spring Boot</description>
+  <description>OpenAPI and Avro x-log-policy extension: contract-driven, PII-safe logging for Spring Boot</description>
 
   <modules>
     <module>x-log-policy-core</module>
+    <module>x-log-policy-avro</module>
     <module>x-log-policy-spring-boot-starter</module>
     <module>x-log-policy-maven-plugin</module>
     <module>x-log-policy-demo</module>
@@ -28,6 +29,7 @@
     <maven-api.version>3.9.9</maven-api.version>
     <openapi-generator.version>7.18.0</openapi-generator.version>
     <javaparser.version>3.26.4</javaparser.version>
+    <avro.version>1.12.0</avro.version>
   </properties>
 
   <dependencyManagement>
@@ -46,6 +48,16 @@
       </dependency>
       <dependency>
         <groupId>io.xlogpolicy</groupId>
+        <artifactId>x-log-policy-avro</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.xlogpolicy</groupId>
         <artifactId>x-log-policy-spring-boot-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -59,6 +71,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-plugin-plugin</artifactId>
           <version>${maven-plugin-tools.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.avro</groupId>
+          <artifactId>avro-maven-plugin</artifactId>
+          <version>${avro.version}</version>
         </plugin>
         <plugin>
           <groupId>org.openapitools</groupId>

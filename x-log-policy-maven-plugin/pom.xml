@@ -13,7 +13,7 @@
   <artifactId>x-log-policy-maven-plugin</artifactId>
   <packaging>maven-plugin</packaging>
   <name>x-log-policy-maven-plugin</name>
-  <description>Reads x-log-policy from an OpenAPI document: generates the runtime registry and validates coverage.</description>
+  <description>Reads x-log-policy from OpenAPI documents and Avro schemas: generates the runtime registry and validates coverage.</description>
 
   <prerequisites>
     <maven>3.6.3</maven>
@@ -23,6 +23,10 @@
     <dependency>
       <groupId>io.xlogpolicy</groupId>
       <artifactId>x-log-policy-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.xlogpolicy</groupId>
+      <artifactId>x-log-policy-avro</artifactId>
     </dependency>
     <dependency>
       <groupId>io.swagger.parser.v3</groupId>

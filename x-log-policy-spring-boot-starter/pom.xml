@@ -26,6 +26,11 @@
 
     <!-- Optional integrations: present only when the application already uses them. -->
     <dependency>
+      <groupId>io.xlogpolicy</groupId>
+      <artifactId>x-log-policy-avro</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
       <optional>true</optional>
