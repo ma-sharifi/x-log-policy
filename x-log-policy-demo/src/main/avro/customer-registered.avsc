@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "CustomerRegistered",
+  "namespace": "io.xlogpolicy.demo.events",
+  "doc": "Published when a customer is created. The x-log-policy attributes travel inside the schema.",
+  "fields": [
+    {"name": "customerId",   "type": "string", "x-log-policy": "SAFE"},
+    {"name": "email",        "type": "string", "x-log-policy": "HMAC"},
+    {"name": "ssn",          "type": ["null", "string"], "default": null, "x-log-policy": "MASK"},
+    {"name": "cardNumber",   "type": ["null", "string"], "default": null,
+                             "x-log-policy": {"policy": "PARTIAL", "keep": 4}},
+    {"name": "phoneNumbers", "type": {"type": "array", "items": "string", "x-log-policy": "HASH"}, "default": []},
+    {"name": "internalNote", "type": ["null", "string"], "default": null, "x-log-policy": "DROP"},
+    {"name": "registeredAt", "type": {"type": "long", "logicalType": "timestamp-millis"}, "x-log-policy": "SAFE"},
+    {"name": "address", "type": {
+      "type": "record", "name": "PostalAddress", "fields": [
+        {"name": "street",     "type": "string", "x-log-policy": "MASK"},
+        {"name": "postalCode", "type": "string", "x-log-policy": {"policy": "PARTIAL", "keep": 2}},
+        {"name": "city",       "type": "string", "x-log-policy": "SAFE"},
+        {"name": "country",    "type": "string", "x-log-policy": "SAFE"}
+      ]}}
+  ]
+}

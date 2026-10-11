@@ -64,6 +64,21 @@ public final class OverridePolicyResolver implements PolicyResolver {
                 .or(() -> resolveByFieldName(property.implicitName()));
     }
 
+    /**
+     * Resolves a property of a type known only by name, such as an Avro record, which may have no Java
+     * class at all. Tries {@code fullName.property}, then {@code simpleName.property}, then the name alone.
+     */
+    public Optional<FieldPolicy> resolve(String fullName, String simpleName, String propertyName) {
+        if (overrides.isEmpty()) {
+            return Optional.empty();
+        }
+        FieldPolicy match = lookup(fullName + "." + propertyName);
+        if (match == null) {
+            match = lookup(simpleName + "." + propertyName);
+        }
+        return match != null ? Optional.of(match) : resolveByFieldName(propertyName);
+    }
+
     @Override
     public Optional<FieldPolicy> resolveByFieldName(String propertyName) {
         FieldPolicy match = lookup("*." + propertyName);

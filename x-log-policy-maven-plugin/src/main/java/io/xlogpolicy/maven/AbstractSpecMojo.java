@@ -14,8 +14,9 @@ import java.util.List;
 abstract class AbstractSpecMojo extends AbstractMojo {
 
     /**
-     * OpenAPI documents to read. Paths are resolved against the project base directory; URLs are
-     * accepted as well.
+     * OpenAPI documents and Avro schemas ({@code .avsc}) to read. Paths are resolved against the project
+     * base directory; URLs are accepted for OpenAPI documents. Avro schemas are parsed together, in the
+     * order given, so a later one may use a named type defined in an earlier one.
      */
     @Parameter(property = "x-log-policy.specs", required = true)
     protected List<String> specs;
@@ -43,17 +44,29 @@ abstract class AbstractSpecMojo extends AbstractMojo {
         List<SpecPolicyScanner.PropertyFinding> findings = new ArrayList<>();
         List<String> problems = new ArrayList<>();
 
+        List<File> avroSchemas = new ArrayList<>();
         for (String spec : specs) {
             String location = resolve(spec);
+            if (location.toLowerCase(java.util.Locale.ROOT).endsWith(".avsc")) {
+                avroSchemas.add(new File(location));
+                continue;
+            }
             getLog().info("x-log-policy: reading " + location);
             SpecPolicyScanner.ScanResult result = SpecPolicyScanner.scan(location);
             metadata = metadata.merge(result.metadata());
             findings.addAll(result.findings());
             result.problems().forEach(problem -> problems.add(spec + ": " + problem));
         }
+        if (!avroSchemas.isEmpty()) {
+            getLog().info("x-log-policy: reading " + avroSchemas.size() + " Avro schema(s)");
+            SpecPolicyScanner.ScanResult result = AvroSchemaScanner.scan(avroSchemas);
+            metadata = metadata.merge(result.metadata());
+            findings.addAll(result.findings());
+            problems.addAll(result.problems());
+        }
 
         if (!problems.isEmpty()) {
-            String message = "x-log-policy found problems in the OpenAPI document(s):"
+            String message = "x-log-policy found problems in the spec(s):"
                     + System.lineSeparator() + "  - " + String.join(System.lineSeparator() + "  - ", problems);
             if (failOnSpecError) {
                 throw new MojoExecutionException(message);

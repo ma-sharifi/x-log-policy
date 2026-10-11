@@ -5,8 +5,8 @@ can implement it; this document is what an implementation has to agree with.
 
 ## Synopsis
 
-`x-log-policy` declares how a value may appear in logs. It is an OpenAPI 3 specification extension and is
-ignored by tooling that does not know it.
+`x-log-policy` declares how a value may appear in logs. It is an OpenAPI 3 specification extension, and
+equally an Avro schema attribute (see [Avro](#avro)); tooling that does not know it ignores it.
 
 ```yaml
 components:
@@ -87,6 +87,31 @@ Address:
     postalCode: { type: string, x-log-policy: { policy: PARTIAL, keep: 2 } }
     city:       { type: string, x-log-policy: SAFE }
 ```
+
+## Avro
+
+In an Avro schema the declaration is an attribute, in the same two forms (`"x-log-policy": "MASK"`, or
+`"x-log-policy": {"policy": "PARTIAL", "keep": 4}`). Avro preserves unknown attributes, so the policy
+travels inside the schema — into generated classes and into the writer schema a consumer decodes with.
+
+| Position | Meaning |
+| --- | --- |
+| on the field | The policy for that field. The common case. |
+| on the field's type | A primitive in object form (`{"type": "string", "x-log-policy": "MASK"}`), an `array` (applies to the items), a `map` (applies to the values), or a branch of a union. |
+| on the record | Default for every field of that record; a field's own policy wins. |
+
+```json
+{"type": "record", "name": "Customer", "fields": [
+  {"name": "ssn",       "type": ["null", "string"], "default": null, "x-log-policy": "MASK"},
+  {"name": "phones",    "type": {"type": "array", "items": "string", "x-log-policy": "HASH"}},
+  {"name": "nickname",  "type": ["null", {"type": "string", "x-log-policy": "PARTIAL"}], "default": null},
+  {"name": "address",   "type": "Address"}
+]}
+```
+
+Exactly as in OpenAPI, a field whose type is another record — directly, or through a union, array or map
+— needs no policy: it is descended into. Map keys are written as they are. Records are indexed in the
+generated registry by their simple name, which is also the generated class's name.
 
 ## Choosing a policy
 

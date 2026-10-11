@@ -1,0 +1,25 @@
+{
+  "type": "record",
+  "name": "CustomerEvent",
+  "namespace": "io.xlogpolicy.avro.fixtures",
+  "fields": [
+    {"name": "id",           "type": "string", "x-log-policy": "SAFE"},
+    {"name": "email",        "type": "string", "x-log-policy": "HMAC"},
+    {"name": "ssn",          "type": ["null", "string"], "default": null, "x-log-policy": "MASK"},
+    {"name": "cardNumber",   "type": "string", "x-log-policy": {"policy": "PARTIAL", "keep": 4}},
+    {"name": "phoneNumbers", "type": {"type": "array", "items": "string", "x-log-policy": "HASH"}},
+    {"name": "nickname",     "type": ["null", {"type": "string", "x-log-policy": "PARTIAL"}], "default": null},
+    {"name": "internalNote", "type": "string", "x-log-policy": "DROP"},
+    {"name": "loyaltyPoints","type": "int", "x-log-policy": "SAFE"},
+    {"name": "undeclared",   "type": "string"},
+    {"name": "status",       "type": {"type": "enum", "name": "Status", "symbols": ["ACTIVE", "CLOSED"]}, "x-log-policy": "SAFE"},
+    {"name": "address",      "type": ["null", {
+      "type": "record", "name": "Address", "fields": [
+        {"name": "street",     "type": "string", "x-log-policy": "MASK"},
+        {"name": "postalCode", "type": "string", "x-log-policy": {"policy": "PARTIAL", "keep": 2}},
+        {"name": "city",       "type": "string", "x-log-policy": "SAFE"}
+      ]}], "default": null},
+    {"name": "priorAddresses", "type": {"type": "array", "items": "Address"}},
+    {"name": "attributes",   "type": {"type": "map", "values": "string", "x-log-policy": "MASK"}}
+  ]
+}

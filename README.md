@@ -1,7 +1,7 @@
 # x-log-policy
 
-Declare in the OpenAPI document how each field may appear in logs, and have every implementation of that
-API obey it.
+Declare in the OpenAPI document — or the Avro schema — how each field may appear in logs, and have every
+implementation of that API, and every consumer of that event, obey it.
 
 ```yaml
 Customer:
@@ -37,8 +37,9 @@ readable. That is what keeps a new personal-data field from leaking by being for
 | Module | What it is |
 | --- | --- |
 | `x-log-policy-core` | `@LogPolicy`, the policy model and the Jackson-based `LogRedactor`. Plain Java, no Spring. |
+| `x-log-policy-avro` | `AvroLogRedactor`: renders Avro records from the `x-log-policy` in their own schema. Plain Java, no Spring. |
 | `x-log-policy-spring-boot-starter` | Auto-configures the redactor, optional HTTP payload logging, and Logback/Log4j2 converters. |
-| `x-log-policy-maven-plugin` | Reads the spec: stamps `@LogPolicy` onto generated models, writes the runtime registry, and fails the build on uncovered fields. |
+| `x-log-policy-maven-plugin` | Reads the spec (OpenAPI or `.avsc`): stamps `@LogPolicy` onto generated models, gives generated Avro records a redacted `toString()`, writes the runtime registry, and fails the build on uncovered fields. |
 | `x-log-policy-demo` | A service proving all of it end to end. Not published. |
 
 ## Getting started
@@ -101,6 +102,86 @@ class CustomerService {
 
 `LogRedactor` never throws and never blocks: a failure to render becomes
 `{"_redactionError":"…"}` in the log rather than an exception in your request.
+
+## Avro
+
+The same extension works in an Avro schema. Avro keeps attributes it does not know as schema properties,
+so the schema designer declares the policy next to the field and it travels with the schema: into the
+`SCHEMA$` of every generated class, and into the writer schema every consumer decodes with.
+
+```json
+{"type": "record", "name": "CustomerRegistered", "fields": [
+  {"name": "customerId",   "type": "string", "x-log-policy": "SAFE"},
+  {"name": "email",        "type": "string", "x-log-policy": "HMAC"},
+  {"name": "ssn",          "type": ["null", "string"], "default": null, "x-log-policy": "MASK"},
+  {"name": "cardNumber",   "type": "string", "x-log-policy": {"policy": "PARTIAL", "keep": 4}},
+  {"name": "phoneNumbers", "type": {"type": "array", "items": "string", "x-log-policy": "HASH"}},
+  {"name": "internalNote", "type": ["null", "string"], "default": null, "x-log-policy": "DROP"},
+  {"name": "address",      "type": "PostalAddress"}
+]}
+```
+
+On the consumer side, add `x-log-policy-avro` and have the build rewrite the classes `avro-maven-plugin`
+generates:
+
+```xml
+<dependency>
+  <groupId>io.xlogpolicy</groupId>
+  <artifactId>x-log-policy-avro</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+```xml
+<plugin>
+  <groupId>io.xlogpolicy</groupId>
+  <artifactId>x-log-policy-maven-plugin</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <executions>
+    <execution>
+      <goals>
+        <goal>avro-safe-tostring</goal>  <!-- generated records get a redacted toString() -->
+        <goal>validate</goal>            <!-- fail the build on uncovered PII-looking fields -->
+      </goals>
+      <configuration>
+        <specs>
+          <spec>src/main/avro/customer-registered.avsc</spec>
+        </specs>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+Declare it after `avro-maven-plugin`, so it runs on the freshly generated sources. Then:
+
+```java
+log.info("received {}", event);                     // toString() is redacted
+log.info("received {}", redactor.toSafeJson(event)); // the same, through the injected LogRedactor
+```
+
+```
+received {"customerId":"c-42","email":"hmac:a3e6a794","ssn":"***","cardNumber":"************1234",
+          "phoneNumbers":["sha256:fab7be8a"],"address":{"street":"***","postalCode":"****AB",…}}
+```
+
+The redacted `toString()` matters more for events than for REST payloads: Kafka clients, error handlers
+and dead-letter publishers log the record they failed on, and that is code you do not get to change.
+`SpecificData.get().toString(event)` still gives the unredacted form where it is genuinely needed.
+
+- **The schema is the registry.** Policies are read at runtime from the record's own schema, so nothing
+  has to be generated for them, and a `GenericRecord` consumer without generated classes is covered too —
+  call `redactor.toSafeJson(record)`.
+- **With the starter**, the `LogRedactor` bean becomes Avro-aware as soon as `x-log-policy-avro` is on the
+  classpath: Avro records are rendered from their schema, everything else as before, and `overrides`,
+  `default-policy`, the HMAC secret and the limits apply to both. Overrides name the record:
+  `"[CustomerRegistered.ssn]": DROP`.
+- **Without Spring**, call `AvroLogRedactor.install(…)` once at startup with your settings; otherwise
+  generated records use defaults, including a random per-JVM HMAC key.
+- **`validate` and `generate-metadata`** accept `.avsc` files in `<specs>` alongside OpenAPI documents.
+  Schemas are parsed together in the order listed, so a later file may use a type an earlier one defines.
+
+See [docs/x-log-policy.md](docs/x-log-policy.md#avro) for where the policy may appear in an Avro schema.
 
 ## Configuration
 
@@ -166,7 +247,7 @@ Every bean is `@ConditionalOnMissingBean`, so anything can be replaced:
 Requires JDK 17+ and Maven 3.6.3+ (built and tested on JDK 25 / Maven 3.9).
 
 ```bash
-mvn clean install     # 121 tests across the four modules
+mvn clean install     # 150 tests across the five modules
 ```
 
 `install` rather than `verify`: the demo module uses the Maven plugin built in the same reactor, and Maven
@@ -196,6 +277,11 @@ The response carries the real data; the console shows `"ssn":"***"`, `"cardNumbe
   a custom redaction used with `%safeMsg` should be idempotent too.
 - **Body logging needs the registry.** A bare JSON key has no annotation to read, so HTTP payload
   redaction resolves names through `META-INF/x-log-policy.json`.
+- **Avro inside a POJO.** `AvroLogRedactor` handles an Avro record passed to it directly; one nested
+  inside an ordinary Java object is rendered by the Jackson redactor, which does not know Avro. Log the
+  record itself.
+- **A hand-written `toString()` wins.** `avro-safe-tostring` leaves a record class that already declares
+  one alone, and warns.
 - **Schema matching is by name.** A model class is matched to a schema by simple name, with a common
   generator suffix stripped (`CustomerDto` → `Customer`).
 - **The PII heuristic is a heuristic.** `validate` flags leaf properties whose names look like personal

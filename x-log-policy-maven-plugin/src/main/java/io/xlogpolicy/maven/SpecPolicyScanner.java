@@ -12,8 +12,8 @@ import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import io.xlogpolicy.core.FieldPolicy;
-import io.xlogpolicy.core.PolicyType;
 import io.xlogpolicy.core.metadata.LogPolicyMetadata;
+import io.xlogpolicy.core.policy.PolicyParser;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +38,7 @@ import java.util.Set;
 public final class SpecPolicyScanner {
 
     /** Extension key, matched case-insensitively because tooling likes to rewrite casing. */
-    public static final String EXTENSION = "x-log-policy";
+    public static final String EXTENSION = PolicyParser.EXTENSION;
 
     /** Synthetic schema name under which parameter and header policies are recorded. */
     public static final String PARAMETERS_SCHEMA = "#parameters";
@@ -135,54 +135,11 @@ public final class SpecPolicyScanner {
             return null;
         }
         try {
-            return parsePolicy(raw);
+            return PolicyParser.parse(raw);
         } catch (RuntimeException ex) {
             problems.add(where + ": " + ex.getMessage());
             return null;
         }
-    }
-
-    private static FieldPolicy parsePolicy(Object raw) {
-        if (raw instanceof String text) {
-            return FieldPolicy.of(PolicyType.parse(text));
-        }
-        if (raw instanceof Map<?, ?> map) {
-            Object policy = firstOf(map, "policy", "value", "type");
-            if (policy == null) {
-                throw new IllegalArgumentException(EXTENSION + " object form requires a 'policy' entry");
-            }
-            PolicyType type = PolicyType.parse(String.valueOf(policy));
-            int keep = FieldPolicy.KEEP_UNSET;
-            Object keepValue = firstOf(map, "keep", "keepLast", "visible");
-            if (keepValue != null) {
-                try {
-                    keep = Integer.parseInt(String.valueOf(keepValue).trim());
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(EXTENSION + " 'keep' must be a number, got " + keepValue);
-                }
-                if (keep < 0) {
-                    throw new IllegalArgumentException(EXTENSION + " 'keep' must not be negative");
-                }
-            }
-            String name = String.valueOf(firstOf(map, "name", "redaction") == null
-                    ? "" : firstOf(map, "name", "redaction"));
-            Object params = map.get("params");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> extra = params instanceof Map ? (Map<String, Object>) params : Map.of();
-            return new FieldPolicy(type, keep, name, extra);
-        }
-        throw new IllegalArgumentException(EXTENSION + " must be a policy name or an object, got "
-                + raw.getClass().getSimpleName());
-    }
-
-    private static Object firstOf(Map<?, ?> map, String... keys) {
-        for (String key : keys) {
-            Object value = map.get(key);
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
     }
 
     private static String capitalize(String value) {
